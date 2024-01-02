@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenma PSU Control UI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000000;
+        }
+        #psu-status {
+            border: 4px solid #4CAF50;
+            padding: 20px;
+            max-width: 90vw;
+            width:300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+            background-color: rgb(147, 147, 147);
+            border-radius: 0.6em;
+        }
+        .status-grid {
+            border: 2px solid #333;
+            padding: 10px;
+            text-align: center;
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* This will place the divs side by side */
+            gap: 10px; /* Optional: Adds space between the divs */
+            margin: 0px;
+        }
+
+        .status-heading {
+            font-weight: bold;
+            margin-bottom: 10px;
+            grid-column: 1 / span 2; /* Makes the heading span both columns */
+        }
+
+        .status-info {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 10px;
+        }
+        .psu-button {
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .output-on {
+            background-color: #4CAF50;
+        }
+
+        #psu-status.connected {
+            border-color: blue; /* Green border when connected */
+        }
+
+        #psu-status.disconnected {
+            opacity: 0.5; /* Gray out when disconnected */
+            border-color: gray;
+        }
+
+        .identity-text {
+          font-size: 75%;
+          margin-top: 10px; /* Adjust spacing as needed */
+        }
+
+        .invisible {
+            display: none !important;
+        }
+
+        .status-input {
+            font-size: 1.25em;
+            width: 60%;
+            
+            text-align: center;
+            font-weight: bold;
+            color: red;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .confirm-button {
+            font-size: 1.5em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .confirm-button:hover {
+            background-color: #367c39;
+        }
+
+        .confirm-button:active {
+            background-color: #2e6531;
+        }
+
+        .status-edit {
+            display: flex;
+            justify-content: space-between;
+            align-items: center; 
+            gap: 10px; 
+
+        }
+
+
+
+
+
+    </style>
+</head>
+<body>
+    <div id="psu-status" class="disconnected">
+        <div class="status-grid" id="ch1status">
+            <div class="status-heading">Output <span id="outputinfo"></span></div>
+            <div class="status-heading">Channel 1 <span id="ch1mode"></span></div>
+            <div class="status-info" id="voltageset1">-.---V</div><div id="voltageset1-editdiv" class="status-edit" style="display: none;"><input type="number" id="voltageset1-input" class="status-input" step="0.1" ><button id="voltageset1-confirm" class="confirm-button" >&#x2713;</button></div>
+            <div class="status-info" id="currentset1">-.---A</div><div id="currentset1-editdiv" class="status-edit" style="display: none;"><input type="number" id="currentset1-input" class="status-input" step="0.01" ><button id="currentset1-confirm" class="confirm-button" >&#x2713;</button></div>
+            <div class="status-info" id="voltageout1">-.---V</div>
+            <div class="status-info" id="currentout1">-.---A</div>
+        </div>
+        
+        <span id="ch2status" style="display: none;">
+            <div class="status-heading">Channel 2 <span id="ch2mode"></span></div>
+            <div class="status-info" id="voltageset2">-.---V</div><div id="voltageset2-editdiv" class="status-edit" style="display: none;"><input type="number" id="voltageset2-input" class="status-input" step="0.1" ><button id="voltageset2-confirm" class="confirm-button" >&#x2713;</button></div>
+            <div class="status-info" id="currentset2">-.---A</div><div id="currentset2-editdiv" class="status-edit" style="display: none;"><input type="number" id="currentset2-input" class="status-input" step="0.01" ><button id="currentset2-confirm" class="confirm-button" >&#x2713;</button></div>
+            <div class="status-info" id="voltageout2">-.---V</div>
+            <div class="status-info" id="currentout2">-.---A</div>
+        </span>
+
+        
+        <div class="button-grid">
+            <button class="psu-button" onclick="turnOnOutput()">Turn On</button>
+            <button class="psu-button" onclick="turnOffOutput()">Turn Off</button>
+            <button class="psu-button" onclick="startLog()" id="logStartButton">Log Start</button>
+            <button class="psu-button" onclick="stopLog()">Log Stop</button>
+            <button class="psu-button" onclick="clearLog()">Log Clear</button>
+            <button class="psu-button" onclick="downloadLog()">Log Download</button>            
+        </div>
+
+        <div class="identity-text" id="identity"></div>
+
+        
+    </div>
+
+    <script>
+        // JavaScript code to make it alive
+
+        //code for the buttons
+        function turnOnOutput() { sendMessage(JSON.stringify({messageid:'command',command:'outputOn'})); }
+        function turnOffOutput() {sendMessage(JSON.stringify({messageid:'command',command:'outputOff'})); }
+        function startLog() { sendMessage(JSON.stringify({messageid:'command',command:'startLog'})); }        
+        function stopLog() { sendMessage(JSON.stringify({messageid:'command',command:'stopLog'}));   }                
+        function clearLog() 
+        {
+            if (confirm("Are you sure you want to clear the log?")) {sendMessage(JSON.stringify({messageid:'command',command:'clearLog'}));  }
+        }                        
+
+        function downloadLog()  { window.open('/log', '_blank'); }                                
+
+
+        //Initiate the WebSocket connection to the server
+        const host = window.location.hostname;
+        const port=6060;
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsUrl = `${wsProtocol}://${host}:${port}`;
+        const psuDiv = document.getElementById('psu-status');
+        let ws; //websocket connection
+
+        /**
+         * set the UI element (voltage or current display) to specific value or to default value
+         */
+        function setElement(id,value,suffix="",def="")
+        {
+            const e=document.getElementById(id);
+            const text= ((value!=null) && (value!=="") && (value!="null"))?value+suffix:def;
+            if ((e!=null) && (e.textContent!= text)) e.textContent=text;
+        }
+
+        /** 
+         * Ensure that the element have or does not have a specific class
+         */ 
+        function ensureClassState(elementId, className, shouldHaveClass) 
+        {
+            const element = document.getElementById(elementId);
+            if (!element) return; // Element not found
+
+            const hasClass = element.classList.contains(className);
+            if (shouldHaveClass && !hasClass) { element.classList.add(className);} 
+            else if (!shouldHaveClass && hasClass) {element.classList.remove(className); }
+        }
+
+        /**
+         * Parse duration received from the server (it is in milliseconds)
+         */ 
+        function parseDuration(dur)
+        {
+            const durSecs=parseFloat(dur)/1000;
+            if (durSecs<10) return durSecs.toFixed(1).padStart(4, '0')+'s';
+            if (durSecs<60) return Math.floor(durSecs).toString().padStart(2, '0')+'s';
+            if (durSecs<3600) return Math.floor(durSecs/60).toString().padStart(2, '0')+'m '+(Math.floor(durSecs)%60).toString().padStart(2, '0')+'s';
+            return Math.floor(durSecs/3600)+'h '+ Math.floor(Math.floor(durSecs%3600)/60).toString().padStart(2, '0')+'m '+(Math.floor(durSecs)%60).toString().padStart(2, '0')+'s';
+            
+        }
+
+
+        /** 
+         * Conect to the websocket
+        */
+        function connectWebSocket() 
+        {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => 
+            {
+                console.log('WebSocket connected');
+                psuDiv.classList.add('connected'); 
+                psuDiv.classList.remove('disconnected');
+            };
+
+            /** 
+             * Handler for the received websocket message
+             */
+            ws.onmessage = (event) => 
+            {
+                try 
+                {
+                   const msg = JSON.parse(event.data);
+                    if ( msg.messageid=='periodic')
+                    {
+                        setElement('identity',msg.identity,'');
+                        setElement('voltageset1',msg.state.voltageSetting[1],'V','--.--V');
+                        setElement('voltageout1',msg.state.voltageOutput[1],'V','--.--V');
+                        setElement('currentset1',msg.state.currentSetting[1],'A','-.---A');
+                        setElement('currentout1',msg.state.currentOutput[1],'A','-.---A');                        
+                        setElement('ch1mode',msg.state.channel1Mode)
+
+                        setElement('identity',msg.identity,'');
+                        setElement('voltageset2',msg.state.voltageSetting[2],'V','--.--V');
+                        setElement('voltageout2',msg.state.voltageOutput[2],'V','--.--V');
+                        setElement('currentset2',msg.state.currentSetting[2],'A','-.---A');
+                        setElement('currentout2',msg.state.currentOutput[2],'A','-.---A');                        
+                        setElement('ch2mode',msg.state.channel2Mode)
+
+                        ensureClassState('ch1status','output-on',msg.state.outputEnabled);
+                        ensureClassState('ch2status','output-on',msg.state.outputEnabled);
+                        ensureClassState('logStartButton','output-on',msg.logging);
+
+                        ensureClassState('ch2status', 'invisible', (msg.state.voltageSetting!=null && msg.state.voltageSetting!='') )
+
+                        let outputinfo=document.getElementById('outputinfo').innerText=(msg.state.outputEnabled)?'On '+parseDuration(msg.onduration):'Off';
+                    }
+
+                } catch (e) 
+                {
+                    console.log('Received non-JSON message:', event.data);
+                    // Handle non-JSON messages or ignore
+                }
+            };
+
+            ws.onerror = (error) => 
+            {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => 
+            {
+                console.log('WebSocket disconnected');
+                psuDiv.classList.remove('connected');
+                psuDiv.classList.add('disconnected');
+                // Attempt to reconnect after a delay
+                setTimeout(connectWebSocket, 2500);
+            };
+        }
+
+    /**
+     * Send a message via websocket to the server
+     */    
+    function sendMessage(message) 
+    {
+        if (ws && ws.readyState === WebSocket.OPEN) 
+        {
+            ws.send(message);
+        } else 
+        {
+            console.error('WebSocket is not connected');
+        }
+    }
+
+    /**
+     * Show input element for specific channel and current or voltage
+     */
+    function showInput(id)
+    {
+        let input = document.getElementById(id+'-input');
+        let infodiv = document.getElementById(id);
+        let div = document.getElementById(id+'-editdiv');
+        infodiv.style.display = 'none';        
+        div.style.display = 'block';        
+        input.value = parseFloat(infodiv.innerText);
+        input.focus();
+    }
+
+     /**
+     * Hide input element for specific channel and current or voltage
+     * @param commit if true then the value is commited to the server
+     */
+    function hideInput(id,commit=false)
+    {
+        let channel=(id.includes('1'))?1:((id.includes('2'))?2:null);
+        let quantity=(id.includes('current'))?'current':((id.includes('voltage'))?'voltage':null);
+        let inputDiv = document.getElementById(id+'-input');
+        let editdivDiv = document.getElementById(editdivId = id+'-editdiv');
+        let displayDiv = document.getElementById(id);
+        editdivDiv.style.display = 'none';
+        displayDiv.style.display = 'block';
+        if (commit)
+        {
+            let value=parseFloat(inputDiv.value); 
+            if ((value >=0) && (quantity =="current") || (quantity =="voltage"))
+            {
+                let formatted = value.toFixed((quantity=="current")?3:2); // Ensure two or three decimal places
+                formatted=formatted.padStart(5, '0'); // Pad Left to 4 digits in total  and decimal dot
+                console.log('Setting ',quantity,channel,formatted);
+                sendMessage(JSON.stringify({messageid:'command',command:(quantity=="voltage")?"setVoltage":((quantity=="current")?"setCurrent":null),channel:channel,value: formatted}));
+            }
+        }
+    }
+
+    const inputs=['voltageset1','voltageset2','currentset1','currentset2']; //Array of all input elements
+    // Add event listeners to input elements
+    inputs.forEach(function(id) 
+    {
+        //show Input on click
+        document.getElementById(id).addEventListener('click', function() 
+        {
+            showInput(id);
+        });
+
+        //Commit the change on clicking the confirm button
+        document.getElementById(id+'-confirm').addEventListener('click', function() 
+        {
+            hideInput(id,true);
+        });
+
+        //Commit or abort the change by pressing enter or escape
+        document.getElementById(id+'-input').addEventListener('keydown', function() 
+        { 
+            if (event.key === 'Enter') hideInput(id,true); 
+            if (event.key === 'Escape') hideInput(id,false); 
+        }
+        );
+    });
+
+    //Handler to detect clicks outside of the input fields - to abort all active changes
+    document.addEventListener('click', function(event) 
+    {
+        const clickid=event.target.id; //Id of the element that was clicked
+        let hideAll=true;
+        inputs.forEach(function(id) 
+        {   //do not hide anything if the click has been to any input element
+            if ((clickid==id) || (clickid==id+'-editdiv') || (clickid==id+'-input') || (clickid==id+'-confirm')) hideAll=false;
+        });
+
+        if (hideAll==true) 
+        {
+            inputs.forEach(function(id) {hideInput(id,false);});
+        }
+
+    });
+
+    //Start the connection to the server
+    connectWebSocket();
+    </script>
+</body>
+</html>
