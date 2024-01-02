@@ -1,7 +1,7 @@
 # Tenma Power Souce Unit Node.js class and Client/Server application
 
 ## Overview TLDR;
-![Placeholder for an image](#)  <!-- Replace # with your image link -->
+![Tenma PSU](./public/2445411-40.png) 
 This project contains a class for controlling Tenma Power Sources via a serial connection, based on the Tenma PSU serial protocol as described in the [CERN TWiki](https://twiki.cern.ch/twiki/bin/view/CLIC/TenmaPWRRemoteControlSyntax) and [kxtells/tenma-serial](https://github.com/kxtells/tenma-serial/tree/master). It supports both single and dual-channel PSUs. 
 This project also includes a simpe client/server app to access the Tenma PSU over network.
 
